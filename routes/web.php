@@ -20,4 +20,3 @@ Route::get('/watch/{video}', [VideoController::class, 'watch'])
     ->name('videos.watch')
     ->middleware('signed');
 Route::delete('/videos/{video}', [VideoController::class, 'destroy'])->name('videos.destroy');
-Route::post('/videos/upload-chunk', [VideoController::class, 'uploadChunk'])->name('videos.upload.chunk');

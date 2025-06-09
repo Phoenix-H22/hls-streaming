@@ -34,14 +34,33 @@ class ProcessVideoToHLS implements ShouldQueue
         $ffmpegPath = '/usr/bin/ffmpeg';
         $ffmpeg = "\"{$ffmpegPath}\"";
 
-        $source = escapeshellarg(storage_path('app/' . $this->video->path));
+        // Get the raw video path
+        $rawPath = $this->video->path;
+
+        // Validate path existence
+        if (empty($rawPath)) {
+            Log::error("Video path is empty for video ID {$this->video->id}");
+            return;
+        }
+
+        $fullSourcePath = storage_path('app/' . $rawPath);
+
+        if (!File::exists($fullSourcePath)) {
+            Log::error("Source file not found: {$fullSourcePath}");
+            return;
+        }
+
+        $source = escapeshellarg($fullSourcePath);
+
+        // Create HLS output directory
         $outputDir = storage_path("app/public/hls/{$this->video->id}");
         File::makeDirectory($outputDir, 0777, true, true);
 
-// Use forward slashes
+        // Prepare FFmpeg output paths
         $segments = '"' . str_replace('\\', '/', $outputDir) . '/file%03d.ts"';
         $playlist = '"' . str_replace('\\', '/', $outputDir) . '/playlist.m3u8"';
 
+        // Construct FFmpeg command
         $cmd = "{$ffmpeg} -i {$source} -preset veryfast -g 48 -sc_threshold 0 -map 0:0 -map 0:1 "
             . "-c:v libx264 -b:v 800k -c:a aac -b:a 128k -f hls -hls_time 10 -hls_playlist_type vod "
             . "-hls_segment_filename {$segments} {$playlist} 2>&1";
@@ -52,10 +71,15 @@ class ProcessVideoToHLS implements ShouldQueue
         Log::info('FFmpeg output: ' . implode("\n", $output));
         Log::info('FFmpeg status: ' . $status);
 
-
-        $this->video->update([
-            'path' => 'storage/hls/' . $this->video->id . '/playlist.m3u8'
-        ]);
+        if ($status === 0 && File::exists(str_replace('"', '', $playlist))) {
+            $this->video->update([
+                'path' => 'storage/hls/' . $this->video->id . '/playlist.m3u8',
+            ]);
+            Log::info("HLS conversion complete for video ID {$this->video->id}");
+        } else {
+            Log::error("HLS conversion failed for video ID {$this->video->id}");
+        }
     }
+
 
 }

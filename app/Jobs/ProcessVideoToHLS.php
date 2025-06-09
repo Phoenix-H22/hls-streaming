@@ -62,7 +62,7 @@ class ProcessVideoToHLS implements ShouldQueue
         $playlist = '"' . str_replace('\\', '/', $outputDir) . '/playlist.m3u8"';
 
         // Construct FFmpeg command
-        $cmd = "{$ffmpeg} -threads 1 -i {$source} -preset veryfast -g 48 -sc_threshold 0 -map 0:0 -map 0:1 "
+        $cmd = "{$ffmpeg} -threads 1 -i {$source} -preset veryfast -g 48 -sc_threshold 0 -map 0:0 -map 0:1? "
             . "-c:v libx264 -b:v 800k -c:a aac -b:a 128k -f hls -hls_time 10 -hls_playlist_type vod "
             . "-hls_segment_filename {$segments} {$playlist} 2>&1";
         $this->video->update(['status' => 'processing']);

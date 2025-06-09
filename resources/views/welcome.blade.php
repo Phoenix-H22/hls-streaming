@@ -17,6 +17,16 @@
 
 <div class="container py-5">
     <h1 class="mb-4 text-center">🎥 Upload Video for HLS Conversion</h1>
+    @if (session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
 
     <div id="progressWrapper" class="mb-4">
         <label class="form-label">Upload Progress</label>

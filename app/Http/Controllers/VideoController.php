@@ -102,6 +102,9 @@ class VideoController extends Controller
 
     public function watch(Video $video)
     {
+        if ($video->status !== 'completed') {
+            return redirect()->route('home')->with('error', 'Video is not ready yet.');
+        }
         if ($video->upload_target === 'bunny') {
             $videoUrl = $this->generateBunnyIframeEmbedUrl($video->path);
             return view('watch_bunny', compact('videoUrl')); // use a special Blade view

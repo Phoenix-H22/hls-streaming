@@ -107,7 +107,7 @@ class VideoController extends Controller
         }
         if ($video->upload_target === 'bunny') {
             $videoUrl = $this->generateBunnyIframeEmbedUrl($video->path);
-            return view('watch_bunny', compact('videoUrl')); // use a special Blade view
+            return view('watch_bunny', compact('videoUrl'));
         } else {
             $videoUrl = asset('storage/hls/' . $video->id . '/playlist.m3u8');
             return view('watch', compact('videoUrl'));
@@ -115,9 +115,9 @@ class VideoController extends Controller
     }
     protected function generateBunnySignedUrl($videoGuid)
     {
-        $baseUrl = config('services.bunny_stream.playback_url'); // e.g. https://your.b-cdn.net
+        $baseUrl = config('services.bunny_stream.playback_url');
         $libraryId = config('services.bunny_stream.library_id');
-        $tokenKey = config('services.bunny_stream.token_key'); // secret token string
+        $tokenKey = config('services.bunny_stream.token_key');
         $expires = time() + 600; // valid for 10 mins
 
         $videoPath = "/$videoGuid/playlist.m3u8";

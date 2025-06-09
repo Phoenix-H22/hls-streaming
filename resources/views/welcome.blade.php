@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>HLS Video Upload</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -38,23 +39,32 @@
         </div>
     </div>
 
-    <h2 class="mb-3">📂 Uploaded Videos</h2>
+    <h2 class="mb-4">📂 Uploaded Videos</h2>
 
     @if($videosWithLinks->isEmpty())
         <p class="text-muted">No videos uploaded yet.</p>
     @else
-        <ul class="list-group">
+        <div class="list-group">
             @foreach ($videosWithLinks as $video)
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
+                <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                    <div class="mb-2 mb-md-0">
                         <strong>{{ $video->title }}</strong>
                     </div>
-                    <a href="{{ $video->signed_url }}" target="_blank" class="btn btn-outline-success btn-sm">
-                        ▶ Watch
-                    </a>
-                </li>
+
+                    <div class="d-flex gap-2">
+                        <a href="{{ $video->signed_url }}" target="_blank" class="btn btn-outline-success btn-sm">
+                            ▶ Watch
+                        </a>
+
+                        <form action="{{ route('videos.destroy', $video) }}" method="POST" onsubmit="return confirm('Delete this video?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-outline-danger btn-sm">🗑 Delete</button>
+                        </form>
+                    </div>
+                </div>
             @endforeach
-        </ul>
+        </div>
     @endif
 </div>
 

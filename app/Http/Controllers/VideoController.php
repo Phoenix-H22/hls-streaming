@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\ProcessVideoToHLS;
 use App\Models\Video;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
 class VideoController extends Controller
@@ -31,11 +32,14 @@ class VideoController extends Controller
         ]);
 
         $filename = uniqid() . '.mp4';
-        $videoPath = $request->file('video')->storeAs('videos/original', $filename);
+
+        $originalPath = 'videos/original/' . $filename;
+        $request->file('video')->storeAs('videos/original', $filename);
 
         $video = Video::create([
             'title' => $request->title,
-            'path' => $videoPath,
+            'path' => null, // path to .m3u8 will be updated later by the job
+            'original_path' => $originalPath,
         ]);
 
         ProcessVideoToHLS::dispatch($video);
@@ -49,4 +53,23 @@ class VideoController extends Controller
             'videoUrl' => asset('storage/hls/' . $video->id . '/playlist.m3u8'),
         ]);
     }
+    public function destroy(Video $video)
+    {
+        // Delete original mp4
+        if ($video->original_path && Storage::exists($video->original_path)) {
+            Storage::delete($video->original_path);
+        }
+
+        // Delete HLS folder
+        $hlsDir = 'public/hls/' . $video->id;
+        if (Storage::exists($hlsDir)) {
+            Storage::deleteDirectory($hlsDir);
+        }
+
+        // Delete DB record
+        $video->delete();
+
+        return redirect()->route('home')->with('success', 'Video deleted successfully.');
+    }
+
 }

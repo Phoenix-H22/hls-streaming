@@ -19,3 +19,5 @@ Route::post('/upload', [VideoController::class, 'store'])->name('videos.upload')
 Route::get('/watch/{video}', [VideoController::class, 'watch'])
     ->name('videos.watch')
     ->middleware('signed');
+Route::delete('/videos/{video}', [VideoController::class, 'destroy'])->name('videos.destroy');
+

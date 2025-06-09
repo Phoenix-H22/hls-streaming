@@ -35,7 +35,7 @@ class ProcessVideoToHLS implements ShouldQueue
         $ffmpeg = "\"{$ffmpegPath}\"";
 
         // Get the raw video path
-        $rawPath = $this->video->path;
+        $rawPath = $this->video->original_path;
 
         // Validate path existence
         if (empty($rawPath)) {

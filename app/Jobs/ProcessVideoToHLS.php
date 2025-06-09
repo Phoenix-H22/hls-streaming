@@ -31,7 +31,8 @@ class ProcessVideoToHLS implements ShouldQueue
 
     public function handle()
     {
-        $ffmpegPath = 'C:\\Program Files\\ImageMagick-7.1.0-Q16\\ffmpeg.exe';
+        //$ffmpegPath = 'C:\\Program Files\\ImageMagick-7.1.0-Q16\\ffmpeg.exe';
+        $ffmpegPath = '/usr/bin/ffmpeg';
         $ffmpeg = "\"{$ffmpegPath}\"";
 
         // Get the raw video path

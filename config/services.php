@@ -27,7 +27,7 @@ return [
     'bunny_stream' => [
         'api_key' => env('BUNNY_STREAM_API_KEY'),
         'library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
-        'token_key' => env('BUNNY_STREAM_SIGNING_KEY'), // 🔐 Your secure playback token
+        'token_key' => trim(env('BUNNY_STREAM_SIGNING_KEY')),
         'playback_url' => env('BUNNY_STREAM_PLAYBACK_URL'), // e.g. https://video.b-cdn.net
     ],
     'ses' => [

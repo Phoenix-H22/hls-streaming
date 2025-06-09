@@ -24,7 +24,12 @@ return [
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],
-
+    'bunny_stream' => [
+        'api_key' => env('BUNNY_STREAM_API_KEY'),
+        'library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
+        'token_key' => env('BUNNY_STREAM_SIGNING_KEY'), // 🔐 Your secure playback token
+        'playback_url' => env('BUNNY_STREAM_PLAYBACK_URL'), // e.g. https://video.b-cdn.net
+    ],
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

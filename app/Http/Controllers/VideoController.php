@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessVideoToHLS;
+use App\Jobs\UploadVideoToBunny;
 use App\Models\Video;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
@@ -22,37 +24,119 @@ class VideoController extends Controller
         return view('welcome', compact('videosWithLinks'));
     }
 
-
-
     public function store(Request $request)
     {
         $request->validate([
+            'video' => 'required|file',
+            'chunkNumber' => 'required|integer',
+            'totalChunks' => 'required|integer',
             'title' => 'required|string',
-            'video' => 'required|mimes:mp4|max:1024000',
         ]);
 
-        $filename = uniqid() . '.mp4';
+        $filename = md5($request->title) . '.mp4';
+        $tempDir = storage_path('app/temp_chunks/' . $filename);
 
-        $originalPath = 'videos/original/' . $filename;
-        $request->file('video')->storeAs('videos/original', $filename);
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
 
-        $video = Video::create([
-            'title' => $request->title,
-            'path' => null, // path to .m3u8 will be updated later by the job
-            'original_path' => $originalPath,
-        ]);
+        $chunkPath = $tempDir . "/chunk_" . $request->chunkNumber;
+        file_put_contents($chunkPath, $request->file('video')->get());
 
-        ProcessVideoToHLS::dispatch($video);
+        // ✅ Check if all chunks exist
+        $allChunksPresent = true;
+        for ($i = 1; $i <= $request->totalChunks; $i++) {
+            if (!file_exists($tempDir . "/chunk_$i")) {
+                $allChunksPresent = false;
+                break;
+            }
+        }
 
-        return redirect()->back()->with('success', 'Uploaded & queued for conversion.');
+        if ($allChunksPresent) {
+            $finalPath = "videos/original/" . $filename;
+            $fullFinalPath = storage_path('app/' . $finalPath);
+
+            // Safeguard: remove if already exists
+            if (file_exists($fullFinalPath)) {
+                unlink($fullFinalPath);
+            }
+
+            $handle = fopen($fullFinalPath, 'ab');
+            for ($i = 1; $i <= $request->totalChunks; $i++) {
+                $chunkFile = "$tempDir/chunk_$i";
+                fwrite($handle, file_get_contents($chunkFile));
+                unlink($chunkFile);
+            }
+            fclose($handle);
+            rmdir($tempDir);
+
+            if ($request->upload_target === 'bunny') {
+                // Dispatch BunnyStream upload job
+                $video = Video::create([
+                    'title' => $request->title,
+                    'path' => null,
+                    'original_path' => $finalPath,
+                    'status' => 'uploaded',
+                    'upload_target' => 'bunny',
+                ]);
+
+                UploadVideoToBunny::dispatch($video);
+            } else {
+                // Continue with FFmpeg job
+                $video = Video::create([
+                    'title' => $request->title,
+                    'path' => null,
+                    'original_path' => $finalPath,
+                    'status' => 'uploaded',
+                    'upload_target' => 'local',
+                ]);
+
+                ProcessVideoToHLS::dispatch($video);
+            }
+
+        }
+
+        return response()->json(['status' => true]);
     }
+
 
     public function watch(Video $video)
     {
-        return view('watch', [
-            'videoUrl' => asset('storage/hls/' . $video->id . '/playlist.m3u8'),
-        ]);
+        if ($video->upload_target === 'bunny') {
+            $videoUrl = $this->generateBunnyIframeEmbedUrl($video->path);
+            return view('watch_bunny', compact('videoUrl')); // use a special Blade view
+        } else {
+            $videoUrl = asset('storage/hls/' . $video->id . '/playlist.m3u8');
+            return view('watch', compact('videoUrl'));
+        }
     }
+    protected function generateBunnySignedUrl($videoGuid)
+    {
+        $baseUrl = config('services.bunny_stream.playback_url'); // e.g. https://your.b-cdn.net
+        $libraryId = config('services.bunny_stream.library_id');
+        $tokenKey = config('services.bunny_stream.token_key'); // secret token string
+        $expires = time() + 600; // valid for 10 mins
+
+        $videoPath = "/$videoGuid/playlist.m3u8";
+        $hash = hash_hmac('sha256', "$videoPath$expires", $tokenKey);
+
+        return "$baseUrl$videoPath?token=$hash&expires=$expires";
+    }
+    protected function generateBunnyIframeEmbedUrl($videoGuid)
+    {
+        $libraryId = config('services.bunny_stream.library_id');
+        $tokenKey  = config('services.bunny_stream.token_key');
+        $expires   = time() + 600;
+
+        $stringToHash = $tokenKey . $videoGuid . $expires;
+        $token = hash('sha256', $stringToHash);
+
+        return "https://iframe.mediadelivery.net/embed/{$libraryId}/{$videoGuid}?token={$token}&expires={$expires}";
+    }
+
+
+
+
     public function destroy(Video $video)
     {
         // Delete original mp4

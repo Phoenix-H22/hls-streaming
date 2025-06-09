@@ -35,6 +35,13 @@ return [
             'root' => storage_path('app'),
             'throw' => false,
         ],
+        'bunnycdn' => [
+            'driver' => 'bunnycdn',
+            'storage_zone' => env('BUNNY_STORAGE_ZONE'),
+            'api_key' => env('BUNNY_API_KEY'),
+            'region' => env('BUNNY_REGION', 'ny'), // Change to 'de', 'la', or 'sg' if needed
+            'pull_zone_url' => env('BUNNY_PULL_ZONE_URL'), // e.g., https://yourzone.b-cdn.net
+        ],
 
         'public' => [
             'driver' => 'local',
